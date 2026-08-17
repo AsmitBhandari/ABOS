@@ -10,6 +10,35 @@
 * Avoid unnecessary global state.
 * Do not silently change existing behavior.
 
+## Core Domain Independence Rule (Mandatory)
+> **Core objects must contain domain information, not infrastructure concerns.**
+
+Core domain objects must represent ABOS concepts independently of infrastructure and external frameworks.
+
+Core objects must NOT directly depend on:
+- FastAPI request/response objects
+- LangGraph state
+- LangChain
+- LiteLLM
+- LLM clients
+- PostgreSQL sessions
+- SQLAlchemy sessions
+- Redis clients
+- Celery tasks
+- HTTP clients
+- database connections
+- framework-specific runtime objects
+
+Infrastructure-specific behavior belongs in:
+- orchestration
+- services
+- adapters
+- infrastructure
+- runtime integrations
+
+The domain layer must remain usable without any external framework.
+This rule applies to all future ABOS development.
+
 ## Architecture Rules
 * Tasks must remain independent of specific agents.
 * Agents must follow a common `BaseAgent` contract.
@@ -28,7 +57,7 @@
 * Never use unsafe code execution such as direct `eval()` on untrusted string expressions.
 
 ## Development Discipline
-* Work only within the current milestone (v0.1).
+* Work only within the current milestone (v0.2).
 * Do not implement future features prematurely (e.g. LLM integration, databases, cloud features).
 * Do not add an LLM merely because it is available.
 * Do not add external frameworks without a clear, documented reason.
