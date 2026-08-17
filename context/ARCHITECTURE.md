@@ -1,82 +1,97 @@
 # ABOS Architecture
 
-This document reflects the **actual implemented architecture** of ABOS v0.2.
+This document reflects the **actual implemented architecture** of ABOS v0.3.
 
 ## System Overview
 
-ABOS v0.2 establishes seven canonical core domain contracts. The architecture strictly decouples domain objects from infrastructure concerns and external frameworks (such as LangGraph, FastAPI, LiteLLM, or databases).
+ABOS v0.3 establishes a modular orchestration layer featuring the **Planner** and **Task Decomposition** subsystem on top of the framework-independent domain layer.
 
 ```mermaid
 flowchart TD
-    Task[Task] -->|Atomic / Composite| Agent[Agent]
-    Agent -->|Uses| Tool[Tool]
-    Agent -->|Executes Attempt| Execution[Execution]
-    Execution -->|Produces| Result[Result]
-    Execution -->|Assessed By| Evaluation[Evaluation]
-    Evaluation -->|Updates Performance| AgentProfile[AgentProfile]
+    User([User / CLI]) -->|Task| Planner[Planner]
+    Planner -->|Assess & Validate| PlanningResult[PlanningResult]
+    PlanningResult -->|Atomic Task| DirectTask[Direct Task]
+    PlanningResult -->|Decomposition| TaskHierarchy[Parent Task + Child Subtasks]
+    DirectTask --> Orchestrator[Orchestrator]
+    TaskHierarchy --> Orchestrator
+    Orchestrator --> Agent[Agent / CalculatorAgent]
+    Agent --> Result[Result]
 ```
-
-## Canonical Core Domain Contracts (`core/`)
-
-### 1. Task (`core/task.py`) [IMPLEMENTED]
-- Unit of work requested within ABOS. Supports both atomic tasks and composite task hierarchies.
-- Attributes: `id`, `description`, `input_data`, `priority` (`TaskPriority`), `required_capabilities`, `status` (`TaskStatus`), `assigned_agent_id`, `parent_task_id`, `child_task_ids`, `created_at`, `metadata`, `result`.
-- Enforces data structure for task decomposition without containing decomposition or planning logic.
-
-### 2. Agent (`core/agent.py`) [IMPLEMENTED]
-- Abstract base contract (`BaseAgent`) for all ABOS execution entities.
-- Attributes: `id`, `name`, `capabilities`, `state` (`AgentState`).
-- Method: `execute(task: Task) -> Result`.
-
-### 3. Tool (`core/tool.py`) [IMPLEMENTED]
-- Abstract base interface (`BaseTool`) for external capabilities accessible to agents.
-- Attributes: `name`, `description`, `input_schema`.
-- Method: `execute(**kwargs) -> Any`.
-
-### 4. Result (`core/result.py`) [IMPLEMENTED]
-- Structured outcome of a task execution produced by an Agent.
-- Attributes: `success` (bool), `output` (Any), `error` (Optional[str]), `agent_id` (str), `execution_id` (Optional[str]), `metadata` (dict).
-- **Separation of Concerns**: Does NOT contain quality scores, correctness scores, or agent performance metrics (which belong to `Evaluation` / `AgentProfile`).
-
-### 5. Execution (`core/execution.py`) [IMPLEMENTED]
-- Represents ONE specific attempt to execute ONE Task. A single Task may have multiple Executions across retries or recovery attempts.
-- Attributes: `id`, `task_id`, `agent_id`, `status` (`ExecutionStatus`), `started_at`, `completed_at`, `result`, `attempt_number`, `error`, `metadata`.
-
-### 6. Evaluation (`core/evaluation.py`) [IMPLEMENTED]
-- Represents ABOS's assessment of an Execution. Produced independently of the Agent's Result.
-- Attributes: `id`, `execution_id`, `task_id`, `agent_id`, `success`, `quality_score` (0..1), `correctness_score` (0..1), `latency_ms` (non-negative), `feedback`, `error_type`, `evaluator`, `created_at`, `metadata`.
-
-### 7. AgentProfile (`core/agent_profile.py`) [IMPLEMENTED]
-- Historical quantitative performance information about an Agent, used by future schedulers for performance-based agent selection.
-- Attributes: `agent_id`, `total_executions`, `successful_executions`, `success_rate` (0..1), `avg_latency_ms`, `confidence_score` (default 0.5), `capabilities`, `last_execution_at`, `metadata`.
-
-### 8. Orchestrator (`core/orchestrator.py`) [IMPLEMENTED]
-- Central coordinator maintaining agent registration and capability matching for task routing in v0.1/v0.2.
 
 ---
 
-## Future Architecture & Integration Points (NOT YET IMPLEMENTED)
+## 1. Orchestration Layer (`orchestration/`)
 
-The following components represent future architecture and are **NOT YET IMPLEMENTED** in this repository:
+### Planner Contract (`orchestration/planner/base.py`) [IMPLEMENTED]
+- Abstract base class (`BasePlanner` / `Planner`) defining the contract: `plan(task: Task) -> PlanningResult`.
+- **Responsibilities**:
+  - Assess whether task decomposition is beneficial.
+  - Leave atomic tasks intact (`should_decompose=False`, `subtasks=[]`).
+  - Generate sequential subtasks when decomposition is appropriate (`should_decompose=True`).
+  - Establish parent-child task relationships (`parent_task_id`, `child_task_ids`).
+  - Validate decomposition integrity.
+  - Return a structured `PlanningResult`.
+- **Non-Responsibilities** (strictly out of scope for Planner):
+  - Selecting agents for subtasks (leaves `assigned_agent_id = None`).
+  - Executing tasks or agents.
+  - Evaluating execution results.
+  - Managing memory, recovery, or LangGraph state.
+
+### PlanningResult (`orchestration/planner/base.py`) [IMPLEMENTED]
+- Structured planning decision container.
+- Attributes: `task_id`, `should_decompose` (bool), `subtasks` (List[Task]), `reason` (str), `confidence` (0..1), `valid` (bool), `metadata` (dict).
+
+### DeterministicPlanner (`orchestration/planner/deterministic.py`) [IMPLEMENTED]
+- Rule-based, explainable decomposition engine.
+- Decomposes explicit multi-step instructions (e.g. numbered lists, semicolon sequences, sequential connectives, Oxford comma conjunction lists).
+- Leaves single/atomic instructions unchanged.
+
+### DecompositionValidator (`orchestration/planner/validator.py`) [IMPLEMENTED]
+- Validates decomposition structure:
+  - Produces at least one child task.
+  - Child IDs are unique and non-empty.
+  - Child IDs differ from parent ID.
+  - Every child has `child.parent_task_id == parent.id`.
+  - Parent `child_task_ids` matches generated subtasks.
+  - Child descriptions are non-empty.
+  - `assigned_agent_id` is NOT set by the Planner.
+
+### Orchestrator (`core/orchestrator.py`) [IMPLEMENTED]
+- Central coordinator maintaining agent registration and capability-based task execution for atomic tasks.
+
+---
+
+## 2. Canonical Core Domain Contracts (`core/`)
+
+1. **Task (`core/task.py`)** [IMPLEMENTED]: Unit of work with parent/child hierarchical support (`parent_task_id`, `child_task_ids`).
+2. **Agent (`core/agent.py`)** [IMPLEMENTED]: Abstract contract (`BaseAgent`) with `execute(task: Task) -> Result`.
+3. **Tool (`core/tool.py`)** [IMPLEMENTED]: Abstract contract (`BaseTool`) for external capabilities.
+4. **Result (`core/result.py`)** [IMPLEMENTED]: Structured outcome of execution produced by an Agent.
+5. **Execution (`core/execution.py`)** [IMPLEMENTED]: Single execution attempt of a Task.
+6. **Evaluation (`core/evaluation.py`)** [IMPLEMENTED]: Separate assessment of an Execution.
+7. **AgentProfile (`core/agent_profile.py`)** [IMPLEMENTED]: Historical quantitative performance record.
+
+---
+
+## 3. Future Architecture (NOT YET IMPLEMENTED)
 
 ```mermaid
 flowchart TD
-    User([User / CLI]) --> Planner["Planner (PLANNED)"]
-    Planner -->|Task Decomposition| Task["Task / Subtasks"]
-    Task --> Scheduler["Scheduler (PLANNED)"]
-    Scheduler -->|Agent Selection| Agent["Agent"]
-    Agent --> Execution["Execution"]
-    Execution --> Result["Result"]
-    Execution --> Evaluator["Evaluator (PLANNED)"]
-    Evaluator --> Evaluation["Evaluation"]
-    Evaluation --> PerformanceTracker["PerformanceTracker (PLANNED)"]
-    PerformanceTracker --> AgentProfile["AgentProfile"]
+    User([User / CLI]) --> Planner["Planner (IMPLEMENTED)"]
+    Planner -->|PlanningResult| Task["Task / Subtasks"]
+    Task --> Scheduler["Scheduler (PLANNED - v0.4)"]
+    Scheduler -->|Agent Selection| Agent["Agent (IMPLEMENTED)"]
+    Agent --> Execution["Execution (IMPLEMENTED)"]
+    Execution --> Result["Result (IMPLEMENTED)"]
+    Execution --> Evaluator["Evaluator (PLANNED - v0.5)"]
+    Evaluator --> Evaluation["Evaluation (IMPLEMENTED)"]
+    Evaluation --> PerformanceTracker["PerformanceTracker (PLANNED - v0.5)"]
+    PerformanceTracker --> AgentProfile["AgentProfile (IMPLEMENTED)"]
     AgentProfile -->|Reads Metrics| Scheduler
 ```
 
-- **Planner / Task Decomposition Engine** [PLANNED - v0.3]
-- **Advanced Capability & Performance Scheduler** [PLANNED - v0.4]
-- **Evaluator Service & PerformanceTracker** [PLANNED - v0.5]
-- **Recovery & Persistent Memory** [PLANNED - v0.6]
+- **Scheduler & Performance-Based Agent Selection** [PLANNED - v0.4]
+- **Evaluator Service & PerformanceTracker Adaptive Loop** [PLANNED - v0.5]
+- **Recovery System & Persistent Memory** [PLANNED - v0.6]
 - **LangGraph Workflow Orchestration** [PLANNED - v0.7]
 - **FastAPI / LiteLLM / PostgreSQL / Redis Integration** [PLANNED - Later]

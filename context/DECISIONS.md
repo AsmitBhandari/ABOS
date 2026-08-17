@@ -159,3 +159,78 @@ Preserves ABOS's fundamental domain identity and avoids framework lock-in.
 
 **Consequences**:
 ABOS domain model remains usable independent of the LangGraph runtime.
+
+---
+
+## Decision 11: Planner is an orchestration component
+
+**Date**: 2026-08-17
+
+**Decision**:
+The `Planner` abstraction resides in `orchestration/planner/` and operates on domain `Task` objects without embedding planning logic into `core/task.py`.
+
+**Reason**:
+Follows the Core Domain Independence rule. `Task` is a domain data structure; planning is an orchestration capability.
+
+**Consequences**:
+Preserves clean separation between data definitions and orchestration behavior.
+
+---
+
+## Decision 12: Planner does not select Agents
+
+**Date**: 2026-08-17
+
+**Decision**:
+When generating subtasks, the Planner leaves `assigned_agent_id = None`.
+
+**Reason**:
+Agent selection is the distinct responsibility of the upcoming `Scheduler` (v0.4), which considers capabilities, availability, and `AgentProfile` performance scores.
+
+**Consequences**:
+Decouples planning from agent routing and avoids premature assignment.
+
+---
+
+## Decision 13: Deterministic Planner precedes LLM Planner
+
+**Date**: 2026-08-17
+
+**Decision**:
+Implement `DeterministicPlanner` before introducing LLM-based planning.
+
+**Reason**:
+Allows architectural validation of task decomposition, hierarchy construction, and validation mechanics independently of external model behavior or API dependencies.
+
+**Consequences**:
+Establishes a solid, testable baseline interface that a future `LLMPlanner` can drop into without modifying domain contracts.
+
+---
+
+## Decision 14: PlanningResult is separate from Task
+
+**Date**: 2026-08-17
+
+**Decision**:
+`Planner.plan()` returns a structured `PlanningResult` container (`task_id`, `should_decompose`, `subtasks`, `reason`, `confidence`, `valid`, `metadata`) rather than mutating `Task` in-place.
+
+**Reason**:
+Task represents a unit of work, while `PlanningResult` represents the planner's decision and reasoning.
+
+**Consequences**:
+Orchestration callers can inspect planning decisions, confidence, and validation status explicitly.
+
+---
+
+## Decision 15: Planner supports hierarchical Tasks
+
+**Date**: 2026-08-17
+
+**Decision**:
+When decomposition occurs, `Planner` links children to the parent via `child.parent_task_id = parent.id` and `parent.child_task_ids = [child.id, ...]`.
+
+**Reason**:
+Preserves full structural provenance of composite tasks across the execution pipeline.
+
+**Consequences**:
+Enables multi-step execution graphs and hierarchy inspection downstream.

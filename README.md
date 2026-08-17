@@ -1,8 +1,8 @@
 # ABOS (Adaptive Behavior Operating System)
 
 ```text
-ABOS v0.2
-Core Domain Contracts
+ABOS v0.3
+Planner + Task Decomposition
 ```
 
 ## 1. What is ABOS?
@@ -11,17 +11,23 @@ Core Domain Contracts
 
 ## 2. Current Development Phase
 
-This repository represents **Phase 2: ABOS v0.2 (Core Domain Contracts)**.
+This repository represents **Phase 3: ABOS v0.3 (Planner + Task Decomposition)**.
 
-The objective of v0.2 is to establish seven canonical core domain contracts that future ABOS components (Planner, Scheduler, Evaluator, Recovery, Memory, and LangGraph orchestration) can build against without framework lock-in.
+The objective of v0.3 is to establish the Planner orchestration layer, structured `PlanningResult`, `DeterministicPlanner`, and `DecompositionValidator` for building parent-child task hierarchies without coupling planning logic to domain data models or infrastructure.
 
 ## 3. Implemented vs Planned Architecture
 
-### IMPLEMENTED (v0.2)
+### IMPLEMENTED (v0.3)
 
-ABOS v0.2 establishes seven canonical core domain contracts in `core/`:
+#### Orchestration Layer (`orchestration/`)
+1. **`Planner` (`BasePlanner`) (`orchestration/planner/base.py`)**: Abstract base contract for task planning and decomposition (`plan(task) -> PlanningResult`).
+2. **`PlanningResult` (`orchestration/planner/base.py`)**: Structured container representing planning decisions (`task_id`, `should_decompose`, `subtasks`, `reason`, `confidence`, `valid`).
+3. **`DeterministicPlanner` (`orchestration/planner/deterministic.py`)**: Rule-based decomposition engine that detects multi-step structures and generates child subtasks.
+4. **`DecompositionValidator` (`orchestration/planner/validator.py`)**: Structural integrity validator for parent-child task hierarchies.
+5. **`Orchestrator` (`core/orchestrator.py`)**: Capability-matching task router.
 
-1. **`Task` (`core/task.py`)**: Unit of work. Supports atomic tasks and composite parent/child task hierarchies (`parent_task_id`, `child_task_ids`).
+#### Core Domain Contracts (`core/`)
+1. **`Task` (`core/task.py`)**: Unit of work supporting atomic tasks and composite parent/child task hierarchies (`parent_task_id`, `child_task_ids`).
 2. **`BaseAgent` (`core/agent.py`)**: Abstract base contract for all ABOS agents (`id`, `name`, `capabilities`, `state`, `execute(task)`).
 3. **`BaseTool` (`core/tool.py`)**: Abstract base contract for external tools (`name`, `description`, `input_schema`, `execute`).
 4. **`Result` (`core/result.py`)**: Structured outcome of a task execution produced by an agent (`success`, `output`, `error`, `agent_id`, `execution_id`, `metadata`).
@@ -31,17 +37,16 @@ ABOS v0.2 establishes seven canonical core domain contracts in `core/`:
 
 Also implemented:
 - **`CalculatorAgent` (`agents/calculator_agent.py`)**: Safe AST math evaluation.
-- **`Orchestrator` (`core/orchestrator.py`)**: In-memory capability-matching task router.
-- **Test Suite (`tests/`)**: 36 passing unit tests covering all core contracts.
+- **Test Suite (`tests/`)**: 53 passing unit tests covering all core contracts and orchestration components.
 
 ### PLANNED / NOT YET IMPLEMENTED
 
 Per project rules and milestone scope, the following are **PLANNED** for future milestones and are **NOT YET IMPLEMENTED** in this repository:
-- Task Decomposition & Planner engine (Planned v0.3)
-- Performance & Capability-based Scheduler v2 (Planned v0.4)
+- Performance & Capability-based Scheduler (Planned v0.4)
 - Automated Evaluator service & PerformanceTracker adaptive loop (Planned v0.5)
 - Recovery system & Persistent Memory integration (Planned v0.6)
 - LangGraph Orchestration integration (Planned v0.7)
+- LLM-based Planner (Planned v0.8)
 - FastAPI, LiteLLM, PostgreSQL, Redis, and Celery infrastructure (Planned Later)
 
 ## 4. Architectural Rules
@@ -53,7 +58,7 @@ Core domain objects represent ABOS concepts independently of external frameworks
 
 ## 5. Installation & Setup
 
-ABOS v0.2 relies exclusively on the **Python 3 standard library**. No third-party dependencies are required.
+ABOS v0.3 relies exclusively on the **Python 3 standard library**. No third-party dependencies are required.
 
 ```bash
 # Prerequisites: Python 3.10+ installed

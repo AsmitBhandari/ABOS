@@ -10,34 +10,30 @@ ABOS is a research project designed to explore adaptive, modular, and autonomous
 Investigate scalable agent abstractions, dynamic task routing, capability discovery, persistent memory systems, and runtime execution monitoring without tight coupling to specific AI or LLM providers.
 
 ## Current Development Phase
-**Phase 2: Core Domain Contracts (v0.2 - Implemented & Verified)**
+**Phase 3: Planner & Task Decomposition (v0.3 - Implemented & Verified)**
 
-## Core Domain Contracts (Seven Canonical Objects)
-1. **Task**: Unit of work (supports atomic tasks & composite parent/child task hierarchies).
-2. **Agent**: Abstract contract (`BaseAgent`) for execution entities.
-3. **Tool**: Interface (`BaseTool`) for external capabilities accessible by agents.
-4. **Result**: Structured outcome of task execution produced by an agent (separate from evaluation).
-5. **Execution**: Single attempt to execute a Task (`attempt_number`, `ExecutionStatus`).
-6. **Evaluation**: ABOS's assessment of an Execution (`quality_score`, `correctness_score`, `latency_ms`).
-7. **AgentProfile**: Quantitative historical performance metrics (`confidence_score`, `success_rate`, `avg_latency_ms`).
+## Core Architecture Layers
+1. **Core Domain Contracts (`core/`)**:
+   - `Task`: Unit of work supporting atomic and composite parent/child task hierarchies.
+   - `BaseAgent`: Abstract contract for execution entities.
+   - `BaseTool`: Interface for external tools/capabilities.
+   - `Result`: Structured outcome of execution produced by an agent.
+   - `Execution`: Single attempt to execute a Task.
+   - `Evaluation`: ABOS's assessment of an Execution.
+   - `AgentProfile`: Quantitative historical performance metrics.
+2. **Orchestration Layer (`orchestration/`)**:
+   - `Planner` (`BasePlanner`): Contract for assessing and decomposing tasks into subtask hierarchies.
+   - `PlanningResult`: Structured planning decision container.
+   - `DeterministicPlanner`: Rule-based deterministic decomposition engine.
+   - `DecompositionValidator`: Structural validation of parent-child subtask relationships.
+   - `Orchestrator`: Capability-based task router (`core/orchestrator.py`).
 
 ## Core Architectural Principles
 - **Core Domain Independence**: Core objects must contain domain information, not infrastructure concerns.
-- **Framework Agnostic**: Core domain objects must remain usable independent of FastAPI, LangGraph, LiteLLM, PostgreSQL, or Redis.
+- **Planner Separation**: Planner is an orchestration component; it generates task structure without assigning or executing agents.
+- **Framework Agnostic**: Pure Python standard library implementation without lock-in to FastAPI, LangGraph, LiteLLM, PostgreSQL, or Redis.
 - **Result vs Evaluation Separation**: Agents produce Results; ABOS evaluates Results separately.
-- **Quantitative Adaptation**: Future Schedulers read `AgentProfile`; future `PerformanceTracker` updates `AgentProfile`.
-
-## Technology Choices
-- **Language**: Python 3.10+
-- **Standard Library Focus**: Minimal dependencies; utilizing `dataclasses`, `enum`, `abc`, `ast`, `datetime`, `uuid`, and `unittest`.
-- **Framework Independence**: Zero external framework lock-in.
-
-## Important Constraints
-- Core domain objects must not directly import external frameworks.
-- Tasks must not depend on specific agents.
-- Arbitrary code execution (`eval()`) is strictly prohibited.
-- Development context (`context/`) must remain separate from runtime memory (`memory/`).
 
 ## Implemented vs Planned Architecture
-- **IMPLEMENTED (v0.2)**: Core domain contracts (Task, Agent, Tool, Result, Execution, Evaluation, AgentProfile), Orchestrator, CalculatorAgent, unit test suite (36 tests).
-- **PLANNED**: Planner & task decomposition engine (v0.3), capability/performance Scheduler (v0.4), Evaluator service & PerformanceTracker (v0.5), Recovery & Memory (v0.6), LangGraph orchestration (v0.7), FastAPI/PostgreSQL/Redis integration (Later).
+- **IMPLEMENTED (v0.3)**: Seven core domain contracts, Planner abstraction (`Planner`, `PlanningResult`), `DeterministicPlanner`, `DecompositionValidator`, `Orchestrator`, `CalculatorAgent`, unit test suite (53 tests).
+- **PLANNED**: Capability & performance-based Scheduler (v0.4), Evaluator service & PerformanceTracker (v0.5), Recovery & Memory (v0.6), LangGraph orchestration (v0.7), LLM Planner & external integrations (Later).
