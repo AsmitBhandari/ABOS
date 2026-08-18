@@ -45,6 +45,7 @@ This rule applies to all future ABOS development.
 * Tools must remain independent of individual agents.
 * Results must use the common `Result` structure.
 * Planner resides in the orchestration layer and creates task hierarchies without assigning or executing agents.
+* Scheduler resides in the orchestration layer and selects agents without mutating domain objects (Task, Agent, AgentProfile) or executing agents.
 * The Orchestrator coordinates agents rather than containing agent-specific implementation logic.
 * `main.py` should remain a thin application entry point.
 * Core business logic must not be placed inside `main.py`.
@@ -58,8 +59,8 @@ This rule applies to all future ABOS development.
 * Never use unsafe code execution such as direct `eval()` on untrusted string expressions.
 
 ## Development Discipline
-* Work only within the current milestone (v0.3).
-* Do not implement future features prematurely (e.g. LLM integration, databases, cloud features).
+* Work only within the current milestone (v0.4).
+* Do not implement future features prematurely (e.g. LLM integration, databases, cloud features, adaptive feedback loop).
 * Do not add an LLM merely because it is available.
 * Do not add external frameworks without a clear, documented reason.
 * Do not replace simple deterministic functionality with AI unnecessarily.

@@ -1,6 +1,6 @@
 # TODO
 
-## Completed (v0.1, v0.2 & v0.3)
+## Completed (v0.1, v0.2, v0.3 & v0.4)
 - [x] Create persistent context directory (`context/`).
 - [x] Implemented initial core abstractions (`Task`, `Agent`, `Tool`, `Result`).
 - [x] Implemented `CalculatorAgent` with AST node evaluation.
@@ -15,16 +15,21 @@
 - [x] Implement `PlanningResult` structured container.
 - [x] Implement `DeterministicPlanner` rule-based decomposition engine.
 - [x] Implement `DecompositionValidator` for hierarchy and isolation integrity.
-- [x] Add comprehensive unit test suite (53/53 tests passing).
+- [x] Implement `Scheduler` abstract contract (`orchestration/scheduler/base.py`).
+- [x] Implement `SchedulingResult` and `CandidateScore` structured containers.
+- [x] Implement `ScoringPolicy` with configurable weights and latency normalization.
+- [x] Implement `DeterministicScheduler` with capability/state filtering and deterministic tie-breaking.
+- [x] Implement safe fallback handling for agents missing `AgentProfile`.
+- [x] Verify domain object immutability during scheduling.
+- [x] Expand comprehensive unit test suite (80/80 tests passing).
 - [x] Verify runtime demonstration (`main.py`).
 
-## Next Milestone (v0.4 - Planned)
-- [ ] Implement `Scheduler` abstraction and capability matching engine.
-- [ ] Incorporate `AgentProfile` performance scoring into agent selection.
-- [ ] Support configurable scheduler weights and agent availability consideration.
+## Next Milestone (v0.5 - Planned)
+- [ ] Implement `Evaluator` service for structured assessment of `Execution` outcomes.
+- [ ] Implement `PerformanceTracker` to record evaluations and update `AgentProfile` metrics.
+- [ ] Establish closed-loop adaptive feedback: `Execution` -> `Result` -> `Evaluation` -> `PerformanceTracker` -> `AgentProfile` -> `Scheduler`.
 
 ## Future Milestones
-- [ ] Milestone v0.5: Evaluator service & PerformanceTracker adaptive feedback loop.
 - [ ] Milestone v0.6: Recovery system & Persistent Memory integration.
 - [ ] Milestone v0.7: LangGraph orchestration integration.
 - [ ] Milestone v0.8: LLM Planner integration.

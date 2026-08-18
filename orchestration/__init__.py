@@ -5,6 +5,14 @@ from orchestration.planner import (
     Planner,
     PlanningResult,
 )
+from orchestration.scheduler import (
+    BaseScheduler,
+    CandidateScore,
+    DeterministicScheduler,
+    Scheduler,
+    SchedulingResult,
+    ScoringPolicy,
+)
 
 __all__ = [
     "Planner",
@@ -12,4 +20,10 @@ __all__ = [
     "PlanningResult",
     "DeterministicPlanner",
     "DecompositionValidator",
+    "Scheduler",
+    "BaseScheduler",
+    "DeterministicScheduler",
+    "SchedulingResult",
+    "CandidateScore",
+    "ScoringPolicy",
 ]

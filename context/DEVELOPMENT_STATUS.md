@@ -1,33 +1,36 @@
 # Development Status
 
 ## Current Milestone
-ABOS v0.3 - Planner + Task Decomposition (Completed & Verified)
+ABOS v0.4 - Scheduler + Agent Selection (Completed & Verified)
 
 ## Completed Work
-- Implemented `Planner` (`BasePlanner`) contract in `orchestration/planner/base.py`.
-- Implemented structured `PlanningResult` container with confidence bounds and validation.
-- Implemented `DeterministicPlanner` in `orchestration/planner/deterministic.py` capable of detecting sequential multi-step patterns and decomposing tasks into child subtasks.
-- Implemented `DecompositionValidator` in `orchestration/planner/validator.py` verifying child uniqueness, parent-child ID synchronization, non-empty descriptions, and agent-assignment isolation.
-- Preserved all seven v0.2 core domain contracts (`Task`, `BaseAgent`, `BaseTool`, `Result`, `Execution`, `Evaluation`, `AgentProfile`).
-- Preserved `CalculatorAgent` and `Orchestrator` execution flow (`main.py` -> `25 * 37` -> `925` -> `COMPLETED`).
-- Added comprehensive unit test suite in `tests/test_planner.py`.
-- Expanded test suite from 36 to 53 tests (`tests/` - 53/53 tests passing).
+- Implemented `Scheduler` (`BaseScheduler`) contract in `orchestration/scheduler/base.py`.
+- Implemented structured `SchedulingResult` and `CandidateScore` containers with validation and serialization.
+- Implemented `ScoringPolicy` in `orchestration/scheduler/scoring.py` with configurable weights (default: success_rate=0.50, latency=0.20, confidence=0.30), strict validation, and inverted min-max latency normalization.
+- Implemented `DeterministicScheduler` in `orchestration/scheduler/deterministic.py` executing capability filtering, state filtering (`IDLE` only), `AgentProfile` performance scoring, and deterministic multi-tier tie-breaking.
+- Handled missing `AgentProfile` instances safely with neutral default performance assumptions (0.50) without mutating or auto-persisting profiles.
+- Verified domain object immutability (`Task`, `BaseAgent`, `AgentProfile` are not mutated during scheduling).
+- Preserved all seven core domain contracts (`Task`, `BaseAgent`, `BaseTool`, `Result`, `Execution`, `Evaluation`, `AgentProfile`).
+- Preserved `Planner` subsystem (`Planner`, `PlanningResult`, `DeterministicPlanner`, `DecompositionValidator`).
+- Preserved `CalculatorAgent` and `Orchestrator` execution flow.
+- Added comprehensive unit test suite in `tests/test_scheduler.py`.
+- Expanded test suite from 53 to 80 tests (`tests/` - 80/80 tests passing).
+- Verified runtime demonstration in `main.py`.
 
 ## In-Progress Work
-- Milestone ABOS v0.3 complete. Ready for v0.4.
+- Milestone ABOS v0.4 complete. Ready for v0.5.
 
 ## Known Limitations
-- `DeterministicPlanner` uses rule-based parsing suitable for architectural validation; complex conversational reasoning will be addressed in a future `LLMPlanner`.
-- Subtasks are generated with `assigned_agent_id = None`; agent selection will be handled by the upcoming `Scheduler` (v0.4).
-- Subtasks are not automatically executed in a multi-step execution loop yet (part of future workflow orchestration).
+- `Scheduler` only reads `AgentProfile`; automatic updating of `AgentProfile` metrics from execution results is part of the upcoming `PerformanceTracker` in v0.5.
+- Multi-step automatic workflow execution of subtask hierarchies is deferred to future workflow orchestration.
 
 ## Tests
-- Total tests: 53
-- Passing: 53
+- Total tests: 80
+- Passing: 80
 - Failing: 0
 
 ## Current State
-Planner abstraction, PlanningResult, DeterministicPlanner, and DecompositionValidator fully implemented, tested, and verified.
+Planner and Scheduler subsystems fully implemented, tested, verified, and decoupled from domain contracts.
 
 ## Next Milestone
-ABOS v0.4 - Scheduler + Agent Selection (awaiting explicit instructions).
+ABOS v0.5 - Evaluation + PerformanceTracker + Adaptive Feedback Loop (awaiting explicit instructions).

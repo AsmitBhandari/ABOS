@@ -234,3 +234,93 @@ Preserves full structural provenance of composite tasks across the execution pip
 
 **Consequences**:
 Enables multi-step execution graphs and hierarchy inspection downstream.
+
+---
+
+## Decision 16: Scheduler is an orchestration component
+
+**Date**: 2026-08-18
+
+**Decision**:
+The `Scheduler` abstraction resides in `orchestration/scheduler/` and operates on domain `Task`, `BaseAgent`, and `AgentProfile` objects without embedding scheduler logic or state into `core/`.
+
+**Reason**:
+Agent selection and performance ranking are orchestration concerns, not domain data structures. Core domain objects must remain independent of scheduling logic.
+
+**Consequences**:
+Preserves clean separation between domain models and orchestration behavior.
+
+---
+
+## Decision 17: Capability filtering occurs before performance scoring
+
+**Date**: 2026-08-18
+
+**Decision**:
+An agent whose capabilities do not satisfy the task's required capabilities is rejected immediately during filtering and is not scored for performance.
+
+**Reason**:
+An agent that cannot execute a task should not be ranked as a "low-performing candidate" or accidentally selected if other metrics happen to be high.
+
+**Consequences**:
+Only agents that possess all required capabilities and are in `IDLE` state proceed to performance scoring.
+
+---
+
+## Decision 18: AgentProfile is read-only to Scheduler
+
+**Date**: 2026-08-18
+
+**Decision**:
+The `Scheduler` strictly reads historical performance metrics from `AgentProfile` and never creates, mutates, or persists profiles.
+
+**Reason**:
+Historical performance records must be maintained and updated exclusively by the future `PerformanceTracker` (v0.5) following task evaluations, preventing circular dependencies or premature profile mutations.
+
+**Consequences**:
+Maintains strict one-way data flow: Execution -> Result -> Evaluation -> PerformanceTracker -> AgentProfile -> Scheduler.
+
+---
+
+## Decision 19: Default performance scoring weights
+
+**Date**: 2026-08-18
+
+**Decision**:
+Default performance scoring uses the weights: `success_rate: 0.50`, `latency_score: 0.20`, `confidence_score: 0.30` (summing to 1.00), with support for configurable `ScoringPolicy` instances.
+
+**Reason**:
+Provides a transparent, explainable, and research-ready baseline that balances correctness (success rate), speed (latency), and model certainty (confidence).
+
+**Consequences**:
+Enables benchmarking and comparative experiments across different scheduling policies without modifying scheduler contracts.
+
+---
+
+## Decision 20: Scheduling and tie-breaking are deterministic
+
+**Date**: 2026-08-18
+
+**Decision**:
+`DeterministicScheduler` uses a multi-tier deterministic tie-breaking sequence (total score -> success rate -> confidence score -> lowest latency -> lexicographical agent ID) with zero randomness or LLM reliance.
+
+**Reason**:
+Determinism and reproducibility are essential for debugging, systematic testing, and scientific research evaluation.
+
+**Consequences**:
+The same inputs (`Task`, `agents`, `profiles`, `policy`) will always produce the identical `SchedulingResult`.
+
+---
+
+## Decision 21: SchedulingResult is separate from Task mutation
+
+**Date**: 2026-08-18
+
+**Decision**:
+The `Scheduler` returns a structured `SchedulingResult` containing `selected_agent_id`, `success`, `reason`, `score`, and `candidates` without mutating `task.assigned_agent_id` or agent state in-place.
+
+**Reason**:
+Making a scheduling decision is distinct from executing the assignment or transitioning agent lifecycle states.
+
+**Consequences**:
+Callers can inspect scheduling decisions, candidate breakdowns, and reasons before committing to task execution or lifecycle state transitions.
