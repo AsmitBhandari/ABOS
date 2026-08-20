@@ -324,3 +324,140 @@ Making a scheduling decision is distinct from executing the assignment or transi
 
 **Consequences**:
 Callers can inspect scheduling decisions, candidate breakdowns, and reasons before committing to task execution or lifecycle state transitions.
+
+---
+
+## Decision 22: Evaluation remains separate from performance history
+
+**Date**: 2026-08-20
+
+**Decision**:
+`Evaluation` represents an assessment of a single execution attempt, while `AgentProfile` stores cumulative historical performance metrics.
+
+**Reason**:
+Conflating single-attempt evaluation with historical tracking would violate single responsibility and prevent multiple independent evaluation strategies.
+
+**Consequences**:
+Maintains clean separation between individual execution assessments and long-term agent profiles.
+
+---
+
+## Decision 23: PerformanceTracker owns AgentProfile updates
+
+**Date**: 2026-08-20
+
+**Decision**:
+`PerformanceTracker` resides in the orchestration layer (`orchestration/performance/tracker.py`) and is the sole component authorized to update `AgentProfile` records from `Evaluation` records.
+
+**Reason**:
+Follows the Core Domain Independence rule. `AgentProfile` is a domain data structure; converting evaluations into historical statistics is an orchestration capability. Schedulers remain read-only consumers.
+
+**Consequences**:
+Prevents tight coupling between domain entities, schedulers, and evaluation systems.
+
+---
+
+## Decision 24: Success rate uses exact cumulative counts
+
+**Date**: 2026-08-20
+
+**Decision**:
+`AgentProfile.success_rate` is updated using exact cumulative counters (`successful_executions / total_executions`) without rolling windows or exponential decay in v0.5.
+
+**Reason**:
+Provides transparent, deterministic, and easily verifiable metrics for scientific baseline evaluation.
+
+**Consequences**:
+Every execution contributes equally to the historical success rate.
+
+---
+
+## Decision 25: Latency uses an incremental cumulative average
+
+**Date**: 2026-08-20
+
+**Decision**:
+`AgentProfile.avg_latency_ms` is updated using the incremental cumulative average formula: `((old_avg * old_count) + new_latency) / (old_count + 1)`.
+
+**Reason**:
+Enables O(1) memory and computation updates without requiring storage of full historical latency time-series.
+
+**Consequences**:
+Efficient in-memory performance tracking that scales without unbound memory growth.
+
+---
+
+## Decision 26: Confidence score represents evidence strength rather than agent quality
+
+**Date**: 2026-08-20
+
+**Decision**:
+`confidence_score` is computed as `min(1.0, total_executions / confidence_saturation)` (default saturation = 20), rather than mirroring `success_rate` or agent quality.
+
+**Reason**:
+Confidence reflects the statistical reliability and quantity of observations collected, whereas `success_rate` reflects observed task success. A low-performing agent with 50 executions has high confidence in its low score.
+
+**Consequences**:
+Scheduler can distinguish between unproven agents (low confidence) and thoroughly evaluated agents (high confidence).
+
+---
+
+## Decision 27: Scheduler scoring policy weights remain fixed in v0.5
+
+**Date**: 2026-08-20
+
+**Decision**:
+Scheduler scoring policy weights (success: 0.50, latency: 0.20, confidence: 0.30) remain fixed during runtime. ABOS adapts through updated `AgentProfile` metrics rather than self-modifying scheduler weights.
+
+**Reason**:
+Ensures explainability, determinism, and controlled comparative experimentation without unconstrained policy drift.
+
+**Consequences**:
+Adaptation is strictly driven by empirical observation updates to candidate agent profiles.
+
+---
+
+## Decision 28: Failed executions remain valid performance observations
+
+**Date**: 2026-08-20
+
+**Decision**:
+When an execution fails (`success = False`), `PerformanceTracker` increments `total_executions`, leaves `successful_executions` unchanged, and records the observed latency.
+
+**Reason**:
+Failure is a crucial signal of real-world agent reliability and efficiency. Ignoring failures would skew metrics positively.
+
+**Consequences**:
+Agent success rate and average latency accurately reflect overall execution history.
+
+---
+
+## Decision 29: Evaluation updates are idempotent by Evaluation ID
+
+**Date**: 2026-08-20
+
+**Decision**:
+`PerformanceTracker` tracks processed `evaluation.id` strings in memory and ignores duplicate submissions of the same evaluation ID without altering profile statistics.
+
+**Reason**:
+Prevents duplicated network messages or retry loops from corrupting statistical counts.
+
+**Consequences**:
+Safe execution in distributed or retry-prone environments without double-counting observations.
+
+---
+
+## Decision 30: Agent specialization is capability-based
+
+**Date**: 2026-08-20
+
+**Decision**:
+Specialized agents (`CalculatorAgent`, `TextAnalysisAgent`, `UnitConversionAgent`) share the identical abstract `BaseAgent` contract (`execute(task: Task) -> Result`) and differentiate themselves exclusively via declared capability strings (`capabilities: List[str]`).
+
+**Reason**:
+Prevents exploding base class hierarchies or concrete type dependencies inside `Scheduler` and `Orchestrator`. Task routing is determined purely by matching `task.required_capabilities` against `agent.capabilities`.
+
+**Consequences**:
+New specialized agent implementations can be seamlessly registered and routed without modifying core domain contracts, planner logic, or scheduler selection algorithms.
+
+

@@ -17,9 +17,15 @@ class Orchestrator:
     def select_agent(self, task: Task, required_capability: Optional[str] = None) -> Optional[BaseAgent]:
         """
         Select an appropriate agent for the task based on capability matching.
-        If required_capability is not specified, inspects task description or input.
+        If required_capability is not specified, inspects task.required_capabilities or description.
         """
         target_cap = required_capability
+        if not target_cap and task.required_capabilities:
+            for cap in task.required_capabilities:
+                for agent in self.agents.values():
+                    if cap in agent.capabilities:
+                        return agent
+
         if not target_cap:
             desc_lower = (task.description or "").lower()
             if "calculate" in desc_lower or "math" in desc_lower or "eval" in desc_lower:
@@ -35,6 +41,7 @@ class Orchestrator:
                 return agent
 
         return None
+
 
     def execute_task(self, task: Task, required_capability: Optional[str] = None) -> Result:
         """

@@ -1,36 +1,42 @@
 # Development Status
 
 ## Current Milestone
-ABOS v0.4 - Scheduler + Agent Selection (Completed & Verified)
+ABOS v0.5 - Evaluation + Performance Tracking + Adaptive Agent Profiles (Pre-Release Multi-Agent Validation Complete)
 
 ## Completed Work
-- Implemented `Scheduler` (`BaseScheduler`) contract in `orchestration/scheduler/base.py`.
-- Implemented structured `SchedulingResult` and `CandidateScore` containers with validation and serialization.
-- Implemented `ScoringPolicy` in `orchestration/scheduler/scoring.py` with configurable weights (default: success_rate=0.50, latency=0.20, confidence=0.30), strict validation, and inverted min-max latency normalization.
-- Implemented `DeterministicScheduler` in `orchestration/scheduler/deterministic.py` executing capability filtering, state filtering (`IDLE` only), `AgentProfile` performance scoring, and deterministic multi-tier tie-breaking.
-- Handled missing `AgentProfile` instances safely with neutral default performance assumptions (0.50) without mutating or auto-persisting profiles.
-- Verified domain object immutability (`Task`, `BaseAgent`, `AgentProfile` are not mutated during scheduling).
-- Preserved all seven core domain contracts (`Task`, `BaseAgent`, `BaseTool`, `Result`, `Execution`, `Evaluation`, `AgentProfile`).
-- Preserved `Planner` subsystem (`Planner`, `PlanningResult`, `DeterministicPlanner`, `DecompositionValidator`).
-- Preserved `CalculatorAgent` and `Orchestrator` execution flow.
-- Added comprehensive unit test suite in `tests/test_scheduler.py`.
-- Expanded test suite from 53 to 80 tests (`tests/` - 80/80 tests passing).
+- Implemented `PerformanceTracker` in `orchestration/performance/tracker.py` to ingest single-execution `Evaluation` records and update historical `AgentProfile` quantitative metrics.
+- Implemented exact cumulative success rate calculation (`successful_executions / total_executions`).
+- Implemented incremental cumulative average latency calculation (`((old_avg * old_count) + new_latency) / new_count`).
+- Implemented evidence-based confidence score calculation (`min(1.0, total_executions / confidence_saturation)` with configurable saturation, default: 20).
+- Implemented quality and correctness score aggregation inside `AgentProfile.metadata["performance"]`.
+- Implemented in-memory evaluation idempotency protection preventing duplicate evaluations from being counted more than once.
+- Implemented agent ID consistency validation (`evaluation.agent_id == profile.agent_id`).
+- Implemented `TextAnalysisAgent` in `agents/text_analysis_agent.py` supporting deterministic word count (capability: `text_analysis`).
+- Implemented `UnitConversionAgent` in `agents/unit_conversion_agent.py` supporting length conversions (`km <-> m`, `m <-> cm`) (capability: `unit_conversion`).
+- Verified capability-based routing and execution across all three specialized agents (`CalculatorAgent`, `TextAnalysisAgent`, `UnitConversionAgent`).
+- Verified performance-aware routing between multiple agents sharing identical capabilities.
+- Maintained strict domain immutability and separation: `Evaluation` != `PerformanceTracker` != `AgentProfile` != `Scheduler`.
+- Maintained fixed `ScoringPolicy` weights (0.50 success rate, 0.20 latency, 0.30 confidence) in `DeterministicScheduler`.
+- Verified closed-loop adaptive feedback demonstration where historical performance updates dynamically influence future scheduling decisions.
+- Added comprehensive unit test suites in `tests/test_performance_tracker.py`, `tests/test_adaptive_feedback.py`, `tests/test_text_analysis_agent.py`, `tests/test_unit_conversion_agent.py`, and `tests/test_multi_agent_routing.py`.
+- Expanded test suite from 94 to 116 tests (`tests/` - 116/116 tests passing).
 - Verified runtime demonstration in `main.py`.
 
 ## In-Progress Work
-- Milestone ABOS v0.4 complete. Ready for v0.5.
+- Pre-release multi-agent validation complete. Awaiting final v0.5 release review and instructions.
 
 ## Known Limitations
-- `Scheduler` only reads `AgentProfile`; automatic updating of `AgentProfile` metrics from execution results is part of the upcoming `PerformanceTracker` in v0.5.
-- Multi-step automatic workflow execution of subtask hierarchies is deferred to future workflow orchestration.
+- `PerformanceTracker` currently operates with in-memory state and idempotency tracking; external database persistence (PostgreSQL / Redis) is deferred to future infrastructure phases.
+- Scheduler scoring policy weights are fixed (0.50, 0.20, 0.30); autonomous meta-learning or weight adaptation is out of scope for v0.5.
+- Multi-step automatic workflow execution and failure recovery are deferred to future milestones.
 
 ## Tests
-- Total tests: 80
-- Passing: 80
+- Total tests: 116
+- Passing: 116
 - Failing: 0
 
 ## Current State
-Planner and Scheduler subsystems fully implemented, tested, verified, and decoupled from domain contracts.
+Multi-agent capability routing, performance tracking, and adaptive feedback fully implemented, validated, and decoupled.
 
 ## Next Milestone
-ABOS v0.5 - Evaluation + PerformanceTracker + Adaptive Feedback Loop (awaiting explicit instructions).
+ABOS v0.6 - Recovery + Failure Handling (awaiting explicit instructions).

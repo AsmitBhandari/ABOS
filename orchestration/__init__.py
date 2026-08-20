@@ -1,3 +1,4 @@
+from orchestration.performance import PerformanceTracker
 from orchestration.planner import (
     BasePlanner,
     DecompositionValidator,
@@ -26,4 +27,6 @@ __all__ = [
     "SchedulingResult",
     "CandidateScore",
     "ScoringPolicy",
+    "PerformanceTracker",
 ]
+
